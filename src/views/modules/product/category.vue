@@ -1,8 +1,9 @@
 <template>
-  <el-tree :data="menus" :props="defaultProps"
-           show-checkbox node-key="catId"
-           :expand-on-click-node="false"
-           :default-expanded-keys="expandedKey">
+  <div>
+    <el-tree :data="menus" :props="defaultProps"
+             show-checkbox node-key="catId"
+             :expand-on-click-node="false"
+             :default-expanded-keys="expandedKey">
     <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
         <span>
@@ -22,7 +23,23 @@
           </el-button>
         </span>
       </span>
-  </el-tree>
+    </el-tree>
+
+    <el-dialog
+      title="提示"
+      :visible.sync="dialogVisible"
+      width="30%">
+      <el-form :model="category">
+        <el-form-item label="分类名称">
+          <el-input v-model="category.name" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addCategory()">确 定</el-button>
+      </span>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
@@ -41,6 +58,14 @@
           label: 'name'
         },
         expandedKey: [],
+        dialogVisible: false,
+        category: {
+          name: '',
+          parentCid: 0,
+          catLevel: 0,
+          showStatus: 1,
+          sort: 0
+        }
       }
     },
     // 计算属性，类似于data概念
@@ -58,7 +83,12 @@
         })
       },
       append(data) {
-        console.log("append", data);
+        // 弹出框，填写表单项保存菜单
+        this.dialogVisible = true;
+
+        // 绑定表单
+        this.category.parentCid = data.catId;
+        this.category.catLevel = data.catLevel * 1 + 1;
       },
       remove(node, data) {
         this.$confirm(`是否删除【${data.name}】菜单?`, '提示', {
@@ -84,6 +114,24 @@
         }).catch(() => {
 
         });
+      },
+      // 添加分类标签
+      addCategory() {
+        this.$http({
+          url: this.$http.adornUrl('/product/category/save'),
+          method: 'post',
+          data: this.$http.adornData(this.category, false)
+        }).then(({data}) => {
+          this.$message({
+            message: '保存成功',
+            type: 'success'
+          })
+          // 关闭对话框
+          this.dialogVisible = false;
+          this.getMenus();
+          // 设置默认展开的菜单
+          this.expandedKey = [this.category.parentCid];
+        })
       }
     },
     // 生命周期- 创建完成(可以访问当前this实例)
