@@ -15,6 +15,12 @@
             添加
           </el-button>
           <el-button
+            type="text"
+            size="mini"
+            @click="() => edit(data)">
+            编辑
+          </el-button>
+          <el-button
             v-if="node.childNodes.length == 0"
             type="text"
             size="mini"
@@ -26,17 +32,24 @@
     </el-tree>
 
     <el-dialog
-      title="提示"
+      :title="title"
       :visible.sync="dialogVisible"
+      :closeOnClickModal="false"
       width="30%">
       <el-form :model="category">
         <el-form-item label="分类名称">
           <el-input v-model="category.name" autocomplete="off"></el-input>
         </el-form-item>
+        <el-form-item label="图标">
+          <el-input v-model="category.icon" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="计量单位">
+          <el-input v-model="category.productUnit" autocomplete="off"></el-input>
+        </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="addCategory()">确 定</el-button>
+        <el-button type="primary" @click="submitData()">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -60,12 +73,17 @@
         expandedKey: [],
         dialogVisible: false,
         category: {
+          catId: null,
           name: '',
           parentCid: 0,
           catLevel: 0,
           showStatus: 1,
-          sort: 0
-        }
+          sort: 0,
+          icon: '',
+          productUnit: ''
+        },
+        dialogType: '',
+        title: ''
       }
     },
     // 计算属性，类似于data概念
@@ -82,13 +100,69 @@
           this.menus = data.data;
         })
       },
+      submitData() {
+        if (this.dialogType === 'add') {
+          this.addCategory();
+        } else if (this.dialogType === 'edit') {
+          this.editCategory();
+        }
+      },
+      editCategory() {
+        let {catId, name, icon, productUnit} = this.category;
+        this.$http({
+          url: this.$http.adornUrl('/product/category/update'),
+          method: 'post',
+          data: this.$http.adornData({catId, name, icon, productUnit}, false)
+        }).then(({data}) => {
+          this.$message({
+            message: '菜单修改成功',
+            type: 'success'
+          })
+          this.dialogVisible = false;
+          // 刷新出新的菜单
+          this.getMenus();
+          // 设置默认展开的菜单
+          this.expandedKey = [this.category.parentCid];
+        })
+      },
+      edit(data) {
+        // 弹出框，填写表单项修改菜单
+        this.dialogVisible = true;
+
+        // 修改
+        this.dialogType = 'edit';
+        this.title = '修改菜单';
+        // 回显数据，发送请求获取节点最新的数据
+        this.$http({
+          url: this.$http.adornUrl(`/product/category/info/${data.catId}`),
+          method: 'get'
+        }).then(({data}) => {
+          this.category.name = data.data.name;
+          this.category.catId = data.data.catId;
+          this.category.icon = data.data.icon;
+          this.category.productUnit = data.data.productUnit;
+          this.category.parentCid = data.data.parentCid;
+          this.category.catLevel = data.data.catLevel;
+          this.category.sort = data.data.sort;
+          this.category.showStatus = data.data.showStatus;
+        })
+      },
       append(data) {
         // 弹出框，填写表单项保存菜单
         this.dialogVisible = true;
 
+        // 添加
+        this.dialogType = 'add';
+        this.title = '添加菜单';
         // 绑定表单
         this.category.parentCid = data.catId;
         this.category.catLevel = data.catLevel * 1 + 1;
+        this.category.name = '';
+        this.category.icon = '';
+        this.category.productUnit = '';
+        this.category.catId = null;
+        this.category.sort = 0;
+        this.category.showStatus = 1;
       },
       remove(node, data) {
         this.$confirm(`是否删除【${data.name}】菜单?`, '提示', {
