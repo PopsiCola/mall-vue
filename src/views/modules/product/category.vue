@@ -3,7 +3,9 @@
     <el-tree :data="menus" :props="defaultProps"
              show-checkbox node-key="catId"
              :expand-on-click-node="false"
-             :default-expanded-keys="expandedKey">
+             :default-expanded-keys="expandedKey"
+             draggable
+             :allow-drop="allowDrop">
     <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
         <span>
@@ -83,7 +85,8 @@
           productUnit: ''
         },
         dialogType: '',
-        title: ''
+        title: '',
+        maxLevel: 0
       }
     },
     // 计算属性，类似于data概念
@@ -99,6 +102,28 @@
         }).then(({data}) => {
           this.menus = data.data;
         })
+      },
+      // 拖动判断
+      allowDrop(draggingNode, dropNode, type) {
+        this.countNodeLevel(draggingNode.data);
+        // 当前正在拖拽的节点+父节点所在深度不大于3即可
+        let deep = this.maxLevel - draggingNode.data.catLevel + 1;
+        if (type === 'inner') {
+          return (deep + dropNode.level) <= 3;
+        } else {
+          return (deep + dropNode.parent.level) <= 3;
+        }
+      },
+      countNodeLevel(node) {
+        // 求出最大深度
+        if (node.children != null && node.children.length > 0) {
+          for (let i = 0; i < node.children.length; i++) {
+            if (node.children[i].catLevel > this.maxLevel) {
+              this.maxLevel = node.children[i].catLevel;
+            }
+            this.countNodeLevel(node.children[i]);
+          }
+        }
       },
       submitData() {
         if (this.dialogType === 'add') {
