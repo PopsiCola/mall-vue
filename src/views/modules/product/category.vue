@@ -1,11 +1,19 @@
 <template>
   <div>
+    <el-switch
+      v-model="draggable"
+      active-text="开启拖拽"
+      inactive-text="关闭拖拽">
+    </el-switch>
+    <!-- 批量保存-->
+    <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
     <el-tree :data="menus" :props="defaultProps"
              show-checkbox node-key="catId"
              :expand-on-click-node="false"
              :default-expanded-keys="expandedKey"
-             draggable
-             :allow-drop="allowDrop">
+             :draggable="draggable"
+             :allow-drop="allowDrop"
+             @node-drop="handleDrop">
     <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
         <span>
@@ -86,7 +94,11 @@
         },
         dialogType: '',
         title: '',
-        maxLevel: 0
+        maxLevel: 0,
+        updateNodes: [],
+        // 默认不能拖拽
+        draggable: false,
+        pCid: []
       }
     },
     // 计算属性，类似于data概念
@@ -103,11 +115,73 @@
           this.menus = data.data;
         })
       },
+      // 批量保存
+      batchSave() {
+        this.$http({
+          url: this.$http.adornUrl('/product/category/update/sort'),
+          method: 'post',
+          data: this.$http.adornData(this.updateNodes, false)
+        }).then(({data}) => {
+          this.$message({
+            message: '菜单顺序修改成功',
+            type: 'success'
+          })
+          // 刷新出新的菜单
+          this.getMenus();
+          // 设置默认展开的菜单
+          this.expandedKey = this.pCid;
+          this.updateNodes = [];
+          this.maxLevel = 0;
+          // this.pCid = 0;
+        })
+      },
+      handleDrop(draggingNode, dropNode, dropType, ev) {
+        // 1.当前节点最新的父节点id
+        let pCid = 0;
+        let siblings = null;
+        if (dropType == "before" || dropType == "after") {
+          pCid = dropNode.parent.data.catId === undefined ? 0 : dropNode.parent.data.catId;
+          siblings = dropNode.parent.childNodes;
+        } else {
+          pCid = dropNode.data.catId;
+          siblings = dropNode.childNodes;
+        }
+        this.pCid.push(pCid);
+
+        // 2.当前拖拽节点的最新顺序
+        for (let i = 0; i < siblings.length; i++) {
+          if (siblings[i].data.catId == draggingNode.data.catId) {
+            // 如果遍历的是当前正在拖拽的节点
+            let catLevel = draggingNode.level;
+            if (siblings[i].level != draggingNode.level) {
+              // 当前节点层级发生变化
+              catLevel = siblings[i].level;
+              // 修改子节点的层级
+              this.updateChildNodeLevel(siblings[i]);
+            }
+            this.updateNodes.push({catId: siblings[i].data.catId, sort: i, parentCid: pCid, catLevel: catLevel});
+          } else {
+            this.updateNodes.push({catId: siblings[i].data.catId, sort: i});
+          }
+        }
+
+        // 3.拖拽节点的最新层级
+
+      },
+      updateChildNodeLevel(node) {
+        if (node.childNodes.length > 0) {
+          for (let i = 0; i < node.childNodes.length; i++) {
+            let cNode = node.childNodes[i].data;
+            this.updateNodes.push({catId: cNode.catId, catLevel: node.childNodes[i].level});
+            this.updateChildNodeLevel(node.childNodes[i]);
+          }
+        }
+      },
       // 拖动判断
       allowDrop(draggingNode, dropNode, type) {
-        this.countNodeLevel(draggingNode.data);
+        this.countNodeLevel(draggingNode);
         // 当前正在拖拽的节点+父节点所在深度不大于3即可
-        let deep = this.maxLevel - draggingNode.data.catLevel + 1;
+        let deep = Math.abs(this.maxLevel - draggingNode.level) + 1;
         if (type === 'inner') {
           return (deep + dropNode.level) <= 3;
         } else {
@@ -116,12 +190,12 @@
       },
       countNodeLevel(node) {
         // 求出最大深度
-        if (node.children != null && node.children.length > 0) {
-          for (let i = 0; i < node.children.length; i++) {
-            if (node.children[i].catLevel > this.maxLevel) {
-              this.maxLevel = node.children[i].catLevel;
+        if (node.childNodes != null && node.childNodes.length > 0) {
+          for (let i = 0; i < node.childNodes.length; i++) {
+            if (node.childNodes[i].level > this.maxLevel) {
+              this.maxLevel = node.childNodes[i].level;
             }
-            this.countNodeLevel(node.children[i]);
+            this.countNodeLevel(node.childNodes[i]);
           }
         }
       },
