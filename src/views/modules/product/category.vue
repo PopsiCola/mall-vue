@@ -7,7 +7,7 @@
     </el-switch>
     <!-- 批量保存-->
     <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
-    <el-button type="danger" @click="batchDelete">危险按钮</el-button>
+    <el-button type="danger" @click="batchDelete">批量删除</el-button>
     <el-tree :data="menus" :props="defaultProps"
              show-checkbox node-key="catId"
              :expand-on-click-node="false"
