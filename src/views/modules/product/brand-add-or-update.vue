@@ -84,7 +84,7 @@
               validator: (rule, value, callback) => {
                 if (value == '') {
                   callback(new Error('排序字段必须填写'));
-                } else if (!Number.isInteger(value)) {
+                } else if (!/[0-9]/.test(value)) {
                   callback(new Error('排序字段必须是一个整数'));
                 } else {
                   callback();
