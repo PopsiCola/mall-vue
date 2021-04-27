@@ -137,7 +137,6 @@
     methods: {
       // 感知树节点被点击
       treeNodeClick(data, node, component) {
-        console.log('数据传到了父组件', data, node, component)
         if (node.level == 3) {
           this.catId = data.catId;
           this.getDataList();

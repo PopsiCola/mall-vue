@@ -124,7 +124,6 @@
         for (let i = 0; i < checkNodes.length; i++) {
           catIds.push(checkNodes[i].catId);
         }
-        console.log(catIds);
         this.$confirm(`是否删除选中的【${catIds.length}】个菜单?`, '提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
