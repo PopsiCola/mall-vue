@@ -19,8 +19,6 @@
   </div>
 </template>
 <script>
-   import {policy} from './policy'
-   import { getUUID } from '@/utils'
 
   export default {
     name: 'singleUpload',
@@ -54,15 +52,6 @@
     },
     data() {
       return {
-        dataObj: {
-          policy: '',
-          signature: '',
-          key: '',
-          ossaccessKeyId: '',
-          dir: '',
-          host: '',
-          // callback:'',
-        },
         dialogVisible: false
       };
     },
@@ -79,20 +68,6 @@
       beforeUpload(file) {
         let _self = this;
         return true;
-        return new Promise((resolve, reject) => {
-          policy().then(response => {
-            console.log(response);
-            _self.dataObj.policy = response.data.policy;
-            _self.dataObj.signature = response.data.signature;
-            _self.dataObj.ossaccessKeyId = response.data.accessid;
-            _self.dataObj.key = response.data.dir + '/'+getUUID()+'_${filename}';
-            _self.dataObj.dir = response.data.dir;
-            _self.dataObj.host = response.data.host;
-            resolve(true)
-          }).catch(err => {
-            reject(false)
-          })
-        })
       },
       handleUploadSuccess(res, file) {
         console.log("上传成功...")
