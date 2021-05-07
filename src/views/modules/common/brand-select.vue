@@ -51,6 +51,7 @@ export default {
           catId: this.catId
         })
       }).then(({ data }) => {
+        console.log(data);
         this.brands = data.data;
       });
     }
@@ -76,5 +77,5 @@ export default {
   activated() {} //如果页面有keep-alive缓存功能，这个函数会触发
 };
 </script>
-<style scoped>
+<style scoped>
 </style>
